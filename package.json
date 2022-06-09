@@ -23,5 +23,8 @@
     "@typescript-eslint/parser": "3.5.0",
     "eslint": "7.4.0",
     "typescript": "3.9.6"
+  },
+  "dependencies": {
+    "@types/node": "^17.0.41"
   }
 }

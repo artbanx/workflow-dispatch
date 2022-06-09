@@ -8720,7 +8720,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.debug = void 0;
 const core = __importStar(__webpack_require__(2186));
 function debug(title, content) {
-    if (true) {
+    if (core.isDebug()) {
         core.info(`::group::${title}`);
         core.info(JSON.stringify(content, null, 3));
         core.info('::endgroup::');
@@ -8774,6 +8774,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__webpack_require__(2186));
 const utils_1 = __webpack_require__(1314);
 const workflow_handler_1 = __webpack_require__(971);
+let workflowHandler;
 function getFollowUrl(workflowHandler, interval, timeout) {
     return __awaiter(this, void 0, void 0, function* () {
         const start = Date.now();
@@ -8840,7 +8841,7 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const args = utils_1.getArgs();
-            const workflowHandler = new workflow_handler_1.WorkflowHandler(args.token, args.workflowRef, args.owner, args.repo, args.ref);
+            workflowHandler = new workflow_handler_1.WorkflowHandler(args.token, args.workflowRef, args.owner, args.repo, args.ref);
             // Trigger workflow run
             yield workflowHandler.triggerWorkflow(args.inputs);
             core.info(`Workflow triggered 🚀`);
@@ -8856,6 +8857,11 @@ function run() {
             const { result, start } = yield waitForCompletionOrTimeout(workflowHandler, args.checkStatusInterval, args.waitForCompletionTimeout);
             core.setOutput('workflow-url', result === null || result === void 0 ? void 0 : result.url);
             computeConclusion(start, args.waitForCompletionTimeout, result);
+            if (args.repostLogs) {
+                const logs = yield workflowHandler.getWorkflowLogs();
+                core.info("Remote workflow logs:");
+                core.info(logs);
+            }
         }
         catch (error) {
             core.setFailed(error.message);
@@ -8866,6 +8872,15 @@ function run() {
 // Call the main task run function
 //
 run();
+process.once('SIGINT', function (code) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.info('SIGINT received...');
+        if (workflowHandler) {
+            yield workflowHandler.cancelWorkflow();
+        }
+        process.exit(2);
+    });
+});
 
 
 /***/ }),
@@ -8936,6 +8951,8 @@ function getArgs() {
     const waitForCompletion = waitForCompletionStr && waitForCompletionStr === 'true';
     const waitForCompletionTimeout = toMilliseconds(core.getInput('wait-for-completion-timeout'));
     const checkStatusInterval = toMilliseconds(core.getInput('wait-for-completion-interval'));
+    const repostLogsStr = core.getInput('repost-logs');
+    const repostLogs = repostLogsStr && repostLogsStr === 'true';
     return {
         token,
         workflowRef,
@@ -8948,7 +8965,8 @@ function getArgs() {
         displayWorkflowUrlInterval,
         checkStatusInterval,
         waitForCompletion,
-        waitForCompletionTimeout
+        waitForCompletionTimeout,
+        repostLogs
     };
 }
 exports.getArgs = getArgs;
@@ -9104,6 +9122,46 @@ class WorkflowHandler {
             }
         });
     }
+    cancelWorkflow() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const runId = yield this.getWorkflowRunId();
+            const response = yield this.octokit.rest.actions.cancelWorkflowRun({
+                owner: this.owner,
+                repo: this.repo,
+                run_id: runId,
+            });
+            debug_1.debug(`Canceling workflow run`, response);
+        });
+    }
+    getWorkflowLogs() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const runId = yield this.getWorkflowRunId();
+            const response = yield this.octokit.actions.listJobsForWorkflowRun({
+                owner: this.owner,
+                repo: this.repo,
+                run_id: runId
+            });
+            debug_1.debug('Jobs in workflow', response);
+            var buf = "";
+            for (const job of response.data.jobs) {
+                try {
+                    const jobLog = yield this.octokit.actions.downloadJobLogsForWorkflowRun({
+                        owner: this.owner,
+                        repo: this.repo,
+                        job_id: job.id,
+                    });
+                    debug_1.debug(`Job ${job.id} log`, jobLog);
+                    buf += `Logs of job '${job.name}'\n`;
+                    buf += jobLog.data;
+                }
+                catch (error) {
+                    debug_1.debug('Job log download error', error);
+                    throw error;
+                }
+            }
+            return buf;
+        });
+    }
     getWorkflowRunArtifacts() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -9140,7 +9198,7 @@ class WorkflowHandler {
                     workflow_id: workflowId,
                     event: 'workflow_dispatch'
                 });
-                debug_1.debug('List Workflow Runs', response);
+                //debug('List Workflow Runs', response);
                 const runs = response.data.workflow_runs
                     .filter((r) => new Date(r.created_at).setMilliseconds(0) >= this.triggerDate);
                 debug_1.debug(`Filtered Workflow Runs (after trigger date: ${new Date(this.triggerDate).toISOString()})`, runs.map((r) => ({
