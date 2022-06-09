@@ -130,7 +130,7 @@ export class WorkflowHandler {
         owner: this.owner,
         repo: this.repo,
         workflow_id: workflowId,
-        event: 'workflow_dispatch'
+        // event: 'workflow_dispatch'
       });
       debug('List Workflow Runs', response);
 
