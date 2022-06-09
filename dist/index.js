@@ -9136,7 +9136,7 @@ class WorkflowHandler {
     getWorkflowLogs() {
         return __awaiter(this, void 0, void 0, function* () {
             const runId = yield this.getWorkflowRunId();
-            const response = yield this.octokit.actions.listJobsForWorkflowRun({
+            const response = yield this.octokit.rest.actions.listJobsForWorkflowRun({
                 owner: this.owner,
                 repo: this.repo,
                 run_id: runId
@@ -9145,7 +9145,7 @@ class WorkflowHandler {
             var buf = "";
             for (const job of response.data.jobs) {
                 try {
-                    const jobLog = yield this.octokit.actions.downloadJobLogsForWorkflowRun({
+                    const jobLog = yield this.octokit.rest.actions.downloadJobLogsForWorkflowRun({
                         owner: this.owner,
                         repo: this.repo,
                         job_id: job.id,

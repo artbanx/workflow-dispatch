@@ -108,7 +108,7 @@ export class WorkflowHandler {
 
   async getWorkflowLogs(): Promise<string> {
     const runId = await this.getWorkflowRunId();
-    const response = await this.octokit.actions.listJobsForWorkflowRun({
+    const response = await this.octokit.rest.actions.listJobsForWorkflowRun({
       owner: this.owner,
       repo: this.repo,
       run_id: runId
@@ -119,7 +119,7 @@ export class WorkflowHandler {
     var buf = "";
     for (const job of response.data.jobs) {
       try {
-        const jobLog = await this.octokit.actions.downloadJobLogsForWorkflowRun({
+        const jobLog = await this.octokit.rest.actions.downloadJobLogsForWorkflowRun({
           owner: this.owner,
           repo: this.repo,
           job_id: job.id,
