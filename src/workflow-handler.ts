@@ -130,7 +130,7 @@ export class WorkflowHandler {
         owner: this.owner,
         repo: this.repo,
         workflow_id: workflowId,
-        // event: 'workflow_dispatch'
+        event: 'workflow_dispatch'
       });
       debug('List Workflow Runs', response);
 
@@ -149,7 +149,7 @@ export class WorkflowHandler {
         throw new Error('Run not found');
       }
 
-      this.workflowRunId = runs[0].id as number;
+      this.workflowRunId = runs[runs.length-1].id as number;
       return this.workflowRunId;
     } catch (error) {
       debug('Get workflow run id error', error);

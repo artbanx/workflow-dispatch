@@ -9138,6 +9138,7 @@ class WorkflowHandler {
                     owner: this.owner,
                     repo: this.repo,
                     workflow_id: workflowId,
+                    event: 'workflow_dispatch'
                 });
                 debug_1.debug('List Workflow Runs', response);
                 const runs = response.data.workflow_runs
@@ -9153,7 +9154,7 @@ class WorkflowHandler {
                 if (runs.length == 0) {
                     throw new Error('Run not found');
                 }
-                this.workflowRunId = runs[0].id;
+                this.workflowRunId = runs[runs.length - 1].id;
                 return this.workflowRunId;
             }
             catch (error) {
