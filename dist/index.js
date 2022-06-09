@@ -8722,7 +8722,7 @@ const core = __importStar(__webpack_require__(2186));
 function debug(title, content) {
     if (true) {
         core.info(`::group::${title}`);
-        core.debug(JSON.stringify(content, null, 3));
+        core.info(JSON.stringify(content, null, 3));
         core.info('::endgroup::');
     }
 }
@@ -8780,7 +8780,10 @@ function getFollowUrl(workflowHandler, interval, timeout) {
         let url;
         let firstExecution = true;
         do {
-            if (!firstExecution) {
+            if (firstExecution) {
+                yield utils_1.sleep(5000);
+            }
+            else {
                 yield utils_1.sleep(interval);
             }
             firstExecution = false;

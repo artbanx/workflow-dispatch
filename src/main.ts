@@ -17,8 +17,10 @@ async function getFollowUrl(workflowHandler: WorkflowHandler, interval: number, 
   let url;
   let firstExecution = true;
   do {
-    if(!firstExecution){
-      await sleep(interval);  
+    if(firstExecution){
+      await sleep(5000);
+    } else {
+      await sleep(interval);
     }
     firstExecution = false;    
     try {
