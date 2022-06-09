@@ -96,6 +96,46 @@ export class WorkflowHandler {
     }
   }
 
+  async cancelWorkflow(): Promise<void> {
+    const runId = await this.getWorkflowRunId();
+    const response = await this.octokit.rest.actions.cancelWorkflowRun({
+      owner: this.owner,
+      repo: this.repo,
+      run_id: runId,
+    });
+    debug(`Canceling workflow run`, response);
+  }
+
+  async getWorkflowLogs(): Promise<string> {
+    const runId = await this.getWorkflowRunId();
+    const response = await this.octokit.actions.listJobsForWorkflowRun({
+      owner: this.owner,
+      repo: this.repo,
+      run_id: runId
+    });
+
+    debug('Jobs in workflow', response);
+
+    var buf = "";
+    for (const job of response.data.jobs) {
+      try {
+        const jobLog = await this.octokit.actions.downloadJobLogsForWorkflowRun({
+          owner: this.owner,
+          repo: this.repo,
+          job_id: job.id,
+        });
+        debug(`Job ${job.id} log`, jobLog);
+
+        buf += `Logs of job '${job.name}'\n`;
+        buf += jobLog.data;
+      } catch (error) {
+        debug('Job log download error', error);
+        throw error;
+      }
+    }
+
+    return buf;
+  }  
 
   async getWorkflowRunArtifacts(): Promise<WorkflowRunResult> {
     try {
