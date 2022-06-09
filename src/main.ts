@@ -15,8 +15,12 @@ import { WorkflowHandler, WorkflowRunConclusion, WorkflowRunResult, WorkflowRunS
 async function getFollowUrl(workflowHandler: WorkflowHandler, interval: number, timeout: number) {
   const start = Date.now();
   let url;
+  let firstExecution = true;
   do {
-    await sleep(interval);
+    if(!firstExecution){
+      await sleep(interval);  
+    }
+    firstExecution = false;    
     try {
       const result = await workflowHandler.getWorkflowRunStatus();
       url = result.url;
