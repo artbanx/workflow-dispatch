@@ -11924,7 +11924,7 @@ class WorkflowHandler {
             try {
                 const workflowId = yield this.getWorkflowId();
                 this.triggerDate = Date.now();
-                const dispatchResp = yield this.octokit.actions.createWorkflowDispatch({
+                const dispatchResp = yield this.octokit.rest.actions.createWorkflowDispatch({
                     owner: this.owner,
                     repo: this.repo,
                     workflow_id: workflowId,
@@ -11943,7 +11943,7 @@ class WorkflowHandler {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const runId = yield this.getWorkflowRunId();
-                const response = yield this.octokit.actions.getWorkflowRun({
+                const response = yield this.octokit.rest.actions.getWorkflowRun({
                     owner: this.owner,
                     repo: this.repo,
                     run_id: runId
@@ -11965,7 +11965,7 @@ class WorkflowHandler {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const runId = yield this.getWorkflowRunId();
-                const response = yield this.octokit.actions.getWorkflowRunArtifacts({
+                const response = yield this.octokit.rest.actions.getWorkflowRunArtifacts({
                     owner: this.owner,
                     repo: this.repo,
                     run_id: runId
@@ -11991,7 +11991,7 @@ class WorkflowHandler {
             try {
                 core.debug('Get workflow run id');
                 const workflowId = yield this.getWorkflowId();
-                const response = yield this.octokit.actions.listWorkflowRuns({
+                const response = yield this.octokit.rest.actions.listWorkflowRuns({
                     owner: this.owner,
                     repo: this.repo,
                     workflow_id: workflowId,
@@ -12030,7 +12030,7 @@ class WorkflowHandler {
                 return this.workflowId;
             }
             try {
-                const workflowsResp = yield this.octokit.actions.listRepoWorkflows({
+                const workflowsResp = yield this.octokit.rest.actions.listRepoWorkflows({
                     owner: this.owner,
                     repo: this.repo
                 });
