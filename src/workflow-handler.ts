@@ -172,7 +172,7 @@ export class WorkflowHandler {
         workflow_id: workflowId,
         event: 'workflow_dispatch'
       });
-      debug('List Workflow Runs', response);
+      //debug('List Workflow Runs', response);
 
       const runs = response.data.workflow_runs
         .filter((r: any) => new Date(r.created_at).setMilliseconds(0) >= this.triggerDate);
