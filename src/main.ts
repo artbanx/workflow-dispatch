@@ -10,13 +10,19 @@ import * as github from '@actions/github'
 import { formatDuration, getArgs, isTimedOut, sleep } from './utils';
 import { WorkflowHandler, WorkflowRunConclusion, WorkflowRunResult, WorkflowRunStatus } from './workflow-handler';
 
-
+let workflowHandler: WorkflowHandler;
 
 async function getFollowUrl(workflowHandler: WorkflowHandler, interval: number, timeout: number) {
   const start = Date.now();
   let url;
+  let firstExecution = true;
   do {
-    await sleep(interval);
+    if(firstExecution){
+      await sleep(5000);
+    } else {
+      await sleep(interval);
+    }
+    firstExecution = false;    
     try {
       const result = await workflowHandler.getWorkflowRunStatus();
       url = result.url;
@@ -66,7 +72,7 @@ function computeConclusion(start: number, waitForCompletionTimeout: number, resu
 async function run(): Promise<void> {
   try {
     const args = getArgs();
-    const workflowHandler = new WorkflowHandler(args.token, args.workflowRef, args.owner, args.repo, args.ref);
+    workflowHandler = new WorkflowHandler(args.token, args.workflowRef, args.owner, args.repo, args.ref);
 
     // Trigger workflow run
     await workflowHandler.triggerWorkflow(args.inputs);
@@ -88,6 +94,12 @@ async function run(): Promise<void> {
     core.setOutput('workflow-url', result?.url);
     computeConclusion(start, args.waitForCompletionTimeout, result);
 
+    if (args.repostLogs) {
+      const logs = await workflowHandler.getWorkflowLogs();
+      core.info("Remote workflow logs:");
+      core.info(logs);
+    }    
+
   } catch (error) {
     core.setFailed(error.message);
   }
@@ -97,3 +109,13 @@ async function run(): Promise<void> {
 // Call the main task run function
 //
 run()
+
+
+process.once('SIGINT', async function (code) {
+  core.info('SIGINT received...');
+  if(workflowHandler){
+    await workflowHandler.cancelWorkflow()
+  }
+  process.exit(2);
+});
+

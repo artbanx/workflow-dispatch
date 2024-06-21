@@ -60,7 +60,7 @@ export class WorkflowHandler {
     try {
       const workflowId = await this.getWorkflowId();
       this.triggerDate = Date.now();
-      const dispatchResp = await this.octokit.actions.createWorkflowDispatch({
+      const dispatchResp = await this.octokit.rest.actions.createWorkflowDispatch({
         owner: this.owner,
         repo: this.repo,
         workflow_id: workflowId,
@@ -77,7 +77,7 @@ export class WorkflowHandler {
   async getWorkflowRunStatus(): Promise<WorkflowRunResult> {
     try {
       const runId = await this.getWorkflowRunId();
-      const response = await this.octokit.actions.getWorkflowRun({
+      const response = await this.octokit.rest.actions.getWorkflowRun({
         owner: this.owner,
         repo: this.repo,
         run_id: runId
@@ -96,11 +96,51 @@ export class WorkflowHandler {
     }
   }
 
+  async cancelWorkflow(): Promise<void> {
+    const runId = await this.getWorkflowRunId();
+    const response = await this.octokit.rest.actions.cancelWorkflowRun({
+      owner: this.owner,
+      repo: this.repo,
+      run_id: runId,
+    });
+    debug(`Canceling workflow run`, response);
+  }
+
+  async getWorkflowLogs(): Promise<string> {
+    const runId = await this.getWorkflowRunId();
+    const response = await this.octokit.rest.actions.listJobsForWorkflowRun({
+      owner: this.owner,
+      repo: this.repo,
+      run_id: runId
+    });
+
+    debug('Jobs in workflow', response);
+
+    var buf = "";
+    for (const job of response.data.jobs) {
+      try {
+        const jobLog = await this.octokit.rest.actions.downloadJobLogsForWorkflowRun({
+          owner: this.owner,
+          repo: this.repo,
+          job_id: job.id,
+        });
+        debug(`Job ${job.id} log`, jobLog);
+
+        buf += `Logs of job '${job.name}'\n`;
+        buf += jobLog.data;
+      } catch (error) {
+        debug('Job log download error', error);
+        throw error;
+      }
+    }
+
+    return buf;
+  }  
 
   async getWorkflowRunArtifacts(): Promise<WorkflowRunResult> {
     try {
       const runId = await this.getWorkflowRunId();
-      const response = await this.octokit.actions.getWorkflowRunArtifacts({
+      const response = await this.octokit.rest.actions.getWorkflowRunArtifacts({
         owner: this.owner,
         repo: this.repo,
         run_id: runId
@@ -126,13 +166,13 @@ export class WorkflowHandler {
     try {
       core.debug('Get workflow run id');
       const workflowId = await this.getWorkflowId();
-      const response = await this.octokit.actions.listWorkflowRuns({
+      const response = await this.octokit.rest.actions.listWorkflowRuns({
         owner: this.owner,
         repo: this.repo,
         workflow_id: workflowId,
         event: 'workflow_dispatch'
       });
-      debug('List Workflow Runs', response);
+      //debug('List Workflow Runs', response);
 
       const runs = response.data.workflow_runs
         .filter((r: any) => new Date(r.created_at).setMilliseconds(0) >= this.triggerDate);
@@ -149,7 +189,7 @@ export class WorkflowHandler {
         throw new Error('Run not found');
       }
 
-      this.workflowRunId = runs[0].id as number;
+      this.workflowRunId = runs[runs.length-1].id as number;
       return this.workflowRunId;
     } catch (error) {
       debug('Get workflow run id error', error);
@@ -168,7 +208,7 @@ export class WorkflowHandler {
       return this.workflowId;
     }
     try {
-      const workflowsResp = await this.octokit.actions.listRepoWorkflows({
+      const workflowsResp = await this.octokit.rest.actions.listRepoWorkflows({
         owner: this.owner, 
         repo: this.repo
       });
